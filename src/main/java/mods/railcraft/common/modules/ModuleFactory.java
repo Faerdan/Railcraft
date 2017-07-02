@@ -325,13 +325,13 @@ public class ModuleFactory extends RailcraftModule {
                     RailcraftCraftingManager.blastFurnace.addRecipe(new ItemStack(Blocks.iron_block), false, false, 11520, EnumCube.STEEL_BLOCK.getItem());
             }
 
-            type = EnumCube.COPPER_BLOCK;
+            /*type = EnumCube.COPPER_BLOCK;
             if (RailcraftConfig.isSubBlockEnabled(type.getTag()))
                 initMetalBlock(Metal.COPPER);
 
             type = EnumCube.TIN_BLOCK;
             if (RailcraftConfig.isSubBlockEnabled(type.getTag()))
-                initMetalBlock(Metal.TIN);
+                initMetalBlock(Metal.TIN);*/
 
             type = EnumCube.LEAD_BLOCK;
             if (RailcraftConfig.isSubBlockEnabled(type.getTag()))
