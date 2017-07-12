@@ -78,7 +78,7 @@ public class TileRollingMachine extends TileMachineBase implements IShaftPowerIn
     public TileRollingMachine() {
         if (RailcraftConfig.machinesRequirePower())
         {
-            shaftPowerInputManager = new ShaftPowerInputManager(this, "rolling machine", 256, 1, 32768);
+            shaftPowerInputManager = new ShaftPowerInputManager(this, "rolling machine", 256, 1, 65536);
         }
         //energyStorage = new EnergyStorage(MAX_ENERGY, MAX_RECEIVE);
     }
