@@ -8,7 +8,14 @@
  */
 package mods.railcraft.common.blocks.machine.epsilon;
 
+import Reika.RotaryCraft.API.Power.IShaftPowerInputCaller;
+import Reika.RotaryCraft.API.Power.ShaftPowerInputManager;
+import buildcraft.api.core.BCLog;
 import mods.railcraft.api.electricity.IElectricGrid;
+import mods.railcraft.common.plugins.forge.PowerPlugin;
+import net.minecraft.block.Block;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.IIcon;
 import mods.railcraft.common.blocks.machine.IEnumMachine;
@@ -21,24 +28,22 @@ import mods.railcraft.common.util.misc.Game;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 /**
  *
  * @author CovertJaguar <http://www.railcraft.info>
  */
-public class TileElectricFeeder extends TileMachineBase implements IElectricGrid, ISinkDelegate {
+public class TileElectricFeeder extends TileMachineBase implements IShaftPowerInputCaller, IElectricGrid {
 
+    protected ShaftPowerInputManager shaftPowerInputManager;
     private final ChargeHandler chargeHandler = new ChargeHandler(this, ChargeHandler.ConnectType.BLOCK, 1);
-    private TileEntity sinkDelegate;
-    private boolean addedToIC2EnergyNet;
 
-    @Override
-    public IEnumMachine getMachineType() {
-        return EnumMachineEpsilon.ELECTRIC_FEEDER;
-    }
-
-    @Override
-    public IIcon getIcon(int side) {
-        return getMachineType().getTexture(0);
+    public TileElectricFeeder()
+    {
+        shaftPowerInputManager = new ShaftPowerInputManager(this, "rail electric feeder", 1);
     }
 
     @Override
@@ -48,29 +53,39 @@ public class TileElectricFeeder extends TileMachineBase implements IElectricGrid
         if (Game.isNotHost(getWorld()))
             return;
 
-        if (!addedToIC2EnergyNet) {
-            IC2Plugin.addTileToNet(getIC2Delegate());
-            addedToIC2EnergyNet = true;
-        }
+        if (shaftPowerInputManager.isStagePowered(0)) {
+            chargeHandler.addCharge(5D * ((double)shaftPowerInputManager.getPower() / 16384D));
 
+            BCLog.logger.info(String.format("TileElectricFeeder: Add charge %s for power %s (total %s)", (5D * ((double)shaftPowerInputManager.getPower() / 16384D)), shaftPowerInputManager.getPower(), chargeHandler.getCharge()));
+            /*double capacity = chargeHandler.getCapacity();
+            try {
+                chargeHandler.setCharge(capacity);
+            } catch (Throwable err) {
+                chargeHandler.addCharge(capacity - chargeHandler.getCharge());
+                Game.logErrorAPI("Railcraft", err, IElectricGrid.class);
+            }*/
+        }
         chargeHandler.tick();
     }
 
-    private void dropFromNet() {
-        if (addedToIC2EnergyNet)
-            IC2Plugin.removeTileFromNet(getIC2Delegate());
+    @Override
+    public ChargeHandler getChargeHandler() {
+        return chargeHandler;
     }
 
     @Override
-    public void onChunkUnload() {
-        super.onChunkUnload();
-        dropFromNet();
+    public TileEntity getTile() {
+        return this;
     }
 
     @Override
-    public void invalidate() {
-        super.invalidate();
-        dropFromNet();
+    public IEnumMachine getMachineType() {
+        return EnumMachineEpsilon.ELECTRIC_FEEDER;
+    }
+
+    @Override
+    public IIcon getIcon(int side) {
+        return getMachineType().getTexture(shaftPowerInputManager.isStagePowered(0) ? 0 : 6);
     }
 
     @Override
@@ -86,45 +101,116 @@ public class TileElectricFeeder extends TileMachineBase implements IElectricGrid
     }
 
     @Override
-    public ChargeHandler getChargeHandler() {
-        return chargeHandler;
+    public boolean canUpdate() {
+        return true;
     }
 
     @Override
-    public TileEntity getTile() {
+    public void writePacketData(DataOutputStream data) throws IOException {
+        super.writePacketData(data);
+        BCLog.logger.info(String.format("TileElectricFeeder.writePacketData %s %s %s", shaftPowerInputManager.getTorque(), shaftPowerInputManager.getOmega(), shaftPowerInputManager.getPower()));
+        data.writeBoolean(shaftPowerInputManager.getPower() > 0);
+        if (shaftPowerInputManager.getPower() > 0) {
+            data.writeInt(shaftPowerInputManager.getTorque());
+            data.writeInt(shaftPowerInputManager.getOmega());
+        }
+    }
+
+    @Override
+    public void readPacketData(DataInputStream data) throws IOException {
+        super.readPacketData(data);
+        boolean wasPowered = shaftPowerInputManager.isStagePowered(0);
+        if (data.readBoolean())
+        {
+            shaftPowerInputManager.setState(data.readInt(), data.readInt());
+        }
+        else
+        {
+            shaftPowerInputManager.setState(0, 0);
+        }
+        if (shaftPowerInputManager.isStagePowered(0) != wasPowered)
+        {
+            BCLog.logger.info(String.format("TileElectricFeeder.readPacketData markBlockForUpdate"));
+            markBlockForUpdate();
+        }
+        BCLog.logger.info(String.format("TileElectricFeeder.readPacketData %s %s %s", shaftPowerInputManager.getTorque(), shaftPowerInputManager.getOmega(), shaftPowerInputManager.getPower()));
+    }
+
+	/* Rotary Power */
+
+    @Override
+    public void onPowerChange(ShaftPowerInputManager shaftPowerInputManager) {
+        this.sendUpdateToClient();
+    }
+
+    @Override
+    public TileEntity getTileEntity() {
         return this;
     }
 
     @Override
-    public double getDemandedEnergy() {
-        double chargeDifference = chargeHandler.getCapacity() - chargeHandler.getCharge();
-        return chargeDifference > 0.0 ? chargeDifference : 0.0;
+    public boolean addPower(int addTorque, int addOmega, long addPower, ForgeDirection inputDirection) {
+        return shaftPowerInputManager != null && shaftPowerInputManager.addPower(addTorque, addOmega, addPower, inputDirection);
     }
 
     @Override
-    public int getSinkTier() {
-        return 3;
+    public int getStageCount() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getStageCount() : 0;
     }
 
     @Override
-    public double injectEnergy(ForgeDirection directionFrom, double amount) {
-        getChargeHandler().addCharge(amount);
-        return 0.0;
+    public void setIORenderAlpha(int i) {
+        if (shaftPowerInputManager != null) shaftPowerInputManager.setIORenderAlpha(i);
     }
 
     @Override
-    public boolean acceptsEnergyFrom(TileEntity emitter, ForgeDirection direction) {
-        return !(emitter instanceof TileIC2MultiEmitterDelegate);
+    public boolean canReadFrom(ForgeDirection forgeDirection) {
+        return true;
     }
 
-    public TileEntity getIC2Delegate() {
-        if (sinkDelegate == null)
-            try {
-                sinkDelegate = new TileIC2SinkDelegate(this);
-            } catch (Throwable error) {
-                Game.logErrorAPI("IndustrialCraft", error);
-            }
-        return sinkDelegate;
+    @Override
+    public boolean isReceiving() {
+        return shaftPowerInputManager != null && shaftPowerInputManager.isReceiving();
+    }
+
+    @Override
+    public int getMinTorque(int stageIndex) {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getMinTorque(stageIndex) : 1;
+    }
+
+    @Override
+    public int getMinOmega(int stageIndex) {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getMinOmega(stageIndex) : 1;
+    }
+
+    @Override
+    public long getMinPower(int stageIndex) {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getMinPower(stageIndex) : 1;
+    }
+
+    @Override
+    public long getPower() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getPower() : 0;
+    }
+
+    @Override
+    public int getOmega() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getOmega() : 0;
+    }
+
+    @Override
+    public int getTorque() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getTorque() : 0;
+    }
+
+    @Override
+    public String getName() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getName() : "[Railcraft]";
+    }
+
+    @Override
+    public int getIORenderAlpha() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getIORenderAlpha() : 0;
     }
 
 }

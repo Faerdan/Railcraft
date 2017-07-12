@@ -8,8 +8,7 @@
  */
 package mods.railcraft.common.gui.containers;
 
-import cofh.api.energy.EnergyStorage;
-import mods.railcraft.common.gui.widgets.RFEnergyIndicator;
+//import mods.railcraft.common.gui.widgets.RFEnergyIndicator;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.IInventory;
@@ -35,7 +34,7 @@ public class ContainerRollingMachine extends RailcraftContainer {
     private final IInventory craftResult;
     private int lastProgress;
     private ItemStack prevOutput;
-    private final RFEnergyIndicator energyIndicator;
+    //private final RFEnergyIndicator energyIndicator;
 
     public ContainerRollingMachine(final InventoryPlayer inventoryplayer, final TileRollingMachine tile) {
         super(tile);
@@ -51,8 +50,8 @@ public class ContainerRollingMachine extends RailcraftContainer {
 
         };
 
-        energyIndicator = new RFEnergyIndicator(tile);
-        addWidget(new IndicatorWidget(energyIndicator, 157, 19, 176, 12, 6, 48));
+        //energyIndicator = new RFEnergyIndicator(tile);
+        //addWidget(new IndicatorWidget(energyIndicator, 157, 19, 176, 12, 6, 48));
 
         addSlot(new SlotRollingMachine(craftResult, 0, 93, 27));
         addSlot(new SlotOutput(tile, 0, 124, 35));
@@ -80,21 +79,21 @@ public class ContainerRollingMachine extends RailcraftContainer {
     public void addCraftingToCrafters(ICrafting icrafting) {
         super.addCraftingToCrafters(icrafting);
         icrafting.sendProgressBarUpdate(this, 0, tile.getProgress());
-        EnergyStorage storage = tile.getEnergyStorage();
+        /*EnergyStorage storage = tile.getEnergyStorage();
         if (storage != null)
-            icrafting.sendProgressBarUpdate(this, 1, storage.getEnergyStored());
+            icrafting.sendProgressBarUpdate(this, 1, storage.getEnergyStored());*/
     }
 
     @Override
     public void sendUpdateToClient() {
         super.sendUpdateToClient();
-        EnergyStorage storage = tile.getEnergyStorage();
+        //EnergyStorage storage = tile.getEnergyStorage();
         for (Object crafter : crafters) {
             ICrafting icrafting = (ICrafting) crafter;
             if (lastProgress != tile.getProgress())
                 icrafting.sendProgressBarUpdate(this, 0, tile.getProgress());
-            if (storage != null)
-                icrafting.sendProgressBarUpdate(this, 2, storage.getEnergyStored());
+            /*if (storage != null)
+                icrafting.sendProgressBarUpdate(this, 2, storage.getEnergyStored());*/
         }
 
         ItemStack output = tile.getStackInSlot(0);
@@ -112,12 +111,12 @@ public class ContainerRollingMachine extends RailcraftContainer {
             case 0:
                 tile.setProgress(data);
                 break;
-            case 1:
+            /*case 1:
                 energyIndicator.setEnergy(data);
                 break;
             case 2:
                 energyIndicator.updateEnergy(data);
-                break;
+                break;*/
         }
     }
 

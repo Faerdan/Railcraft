@@ -8,21 +8,26 @@
  */
 package mods.railcraft.common.blocks.machine.alpha;
 
+import Reika.RotaryCraft.API.Power.IShaftPowerInputCaller;
+import Reika.RotaryCraft.API.Power.ShaftPowerInputManager;
+import buildcraft.api.core.BCLog;
 import buildcraft.api.statements.IActionExternal;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.*;
-import cofh.api.energy.EnergyStorage;
-import cofh.api.energy.IEnergyHandler;
 import mods.railcraft.common.blocks.RailcraftTileEntity;
+import mods.railcraft.common.blocks.machine.TileMachineBase;
 import net.minecraft.inventory.Container;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
-import net.minecraftforge.common.util.ForgeDirection;
 import mods.railcraft.common.blocks.machine.IEnumMachine;
-import mods.railcraft.common.blocks.machine.TileMachineBase;
 import mods.railcraft.common.core.RailcraftConfig;
 import mods.railcraft.common.gui.EnumGui;
 import mods.railcraft.common.gui.GuiHandler;
@@ -39,25 +44,27 @@ import mods.railcraft.common.util.inventory.wrappers.IInvSlot;
 import mods.railcraft.common.util.inventory.wrappers.InventoryIterator;
 import mods.railcraft.common.util.misc.Game;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraftforge.common.util.ForgeDirection;
 
-public class TileRollingMachine extends TileMachineBase implements IEnergyHandler, ISidedInventory, IHasWork {
+public class TileRollingMachine extends TileMachineBase implements IShaftPowerInputCaller, ISidedInventory, IHasWork {
 
     private final static int PROCESS_TIME = 100;
-    private final static int ACTIVATION_POWER = 50;
-    private final static int MAX_RECEIVE = 1000;
-    private final static int MAX_ENERGY = ACTIVATION_POWER * PROCESS_TIME;
+    //private final static int ACTIVATION_POWER = 50;
+    //private final static int MAX_RECEIVE = 1000;
+    //private final static int MAX_ENERGY = ACTIVATION_POWER * PROCESS_TIME;
     private final static int SLOT_RESULT = 0;
     private static final int[] SLOTS = InvTools.buildSlotArray(0, 10);
     private final InventoryCrafting craftMatrix = new InventoryCrafting(new RollingContainer(), 3, 3);
     private final StandaloneInventory invResult = new StandaloneInventory(1, "invResult", (IInventory) this);
     private final IInventory inv = InventoryConcatenator.make().add(invResult).add(craftMatrix);
-    private EnergyStorage energyStorage;
+    //private EnergyStorage energyStorage;
     public boolean useLast;
     private boolean isWorking, paused;
-    private ItemStack currentReceipe;
+    private ItemStack currentRecipe;
     private int progress;
     private final AdjacentInventoryCache cache = new AdjacentInventoryCache(this, tileCache, null, InventorySorter.SIZE_DECENDING);
     private final Set<IActionExternal> actions = new HashSet<IActionExternal>();
+    protected ShaftPowerInputManager shaftPowerInputManager;
 
     private static class RollingContainer extends Container {
 
@@ -70,7 +77,10 @@ public class TileRollingMachine extends TileMachineBase implements IEnergyHandle
 
     public TileRollingMachine() {
         if (RailcraftConfig.machinesRequirePower())
-            energyStorage = new EnergyStorage(MAX_ENERGY, MAX_RECEIVE);
+        {
+            shaftPowerInputManager = new ShaftPowerInputManager(this, "rolling machine", 256, 1, 32768);
+        }
+        //energyStorage = new EnergyStorage(MAX_ENERGY, MAX_RECEIVE);
     }
 
     @Override
@@ -89,8 +99,8 @@ public class TileRollingMachine extends TileMachineBase implements IEnergyHandle
 
         data.setInteger("progress", progress);
 
-        if (energyStorage != null)
-            energyStorage.writeToNBT(data);
+        //if (energyStorage != null)
+            //energyStorage.writeToNBT(data);
 
         invResult.writeToNBT("invResult", data);
         InvTools.writeInvToNBT(craftMatrix, "Crafting", data);
@@ -102,8 +112,8 @@ public class TileRollingMachine extends TileMachineBase implements IEnergyHandle
 
         progress = data.getInteger("progress");
 
-        if (energyStorage != null)
-            energyStorage.readFromNBT(data);
+        //if (energyStorage != null)
+            //energyStorage.readFromNBT(data);
 
         invResult.readFromNBT("invResult", data);
         InvTools.readInvFromNBT(craftMatrix, "Crafting", data);
@@ -145,11 +155,6 @@ public class TileRollingMachine extends TileMachineBase implements IEnergyHandle
     }
 
     @Override
-    public boolean canUpdate() {
-        return true;
-    }
-
-    @Override
     public void updateEntity() {
         super.updateEntity();
 
@@ -165,32 +170,30 @@ public class TileRollingMachine extends TileMachineBase implements IEnergyHandle
             return;
 
         if (clock % 8 == 0) {
-            currentReceipe = RollingMachineCraftingManager.getInstance().findMatchingRecipe(craftMatrix, worldObj);
-            if (currentReceipe != null)
+            currentRecipe = RollingMachineCraftingManager.getInstance().findMatchingRecipe(craftMatrix, worldObj);
+            if (currentRecipe != null)
                 findMoreStuff();
         }
 
-        if (currentReceipe != null && canMakeMore())
+        if (currentRecipe != null && canMakeMore())
             if (progress >= PROCESS_TIME) {
                 isWorking = false;
-                if (InvTools.isRoomForStack(currentReceipe, invResult)) {
-                    currentReceipe = RollingMachineCraftingManager.getInstance().findMatchingRecipe(craftMatrix, worldObj);
-                    if (currentReceipe != null) {
+                if (InvTools.isRoomForStack(currentRecipe, invResult)) {
+                    currentRecipe = RollingMachineCraftingManager.getInstance().findMatchingRecipe(craftMatrix, worldObj);
+                    if (currentRecipe != null) {
                         for (int i = 0; i < craftMatrix.getSizeInventory(); i++) {
                             craftMatrix.decrStackSize(i, 1);
                         }
-                        InvTools.moveItemStack(currentReceipe, invResult);
+                        InvTools.moveItemStack(currentRecipe, invResult);
                     }
                     useLast = false;
                     progress = 0;
                 }
             } else {
                 isWorking = true;
-                if (energyStorage != null) {
-                    int energy = energyStorage.extractEnergy(ACTIVATION_POWER, true);
-                    if (energy >= ACTIVATION_POWER) {
+                if (shaftPowerInputManager != null) {
+                    if (shaftPowerInputManager.isStagePowered(0)) {
                         progress++;
-                        energyStorage.extractEnergy(ACTIVATION_POWER, false);
                     }
                 } else
                     progress++;
@@ -360,39 +363,110 @@ public class TileRollingMachine extends TileMachineBase implements IEnergyHandle
         return getName();
     }
 
-    public EnergyStorage getEnergyStorage() {
-        return energyStorage;
+    @Override
+    public boolean canUpdate() {
+        return true;
     }
 
     @Override
-    public boolean canConnectEnergy(ForgeDirection side) {
-        return energyStorage != null;
+    public void writePacketData(DataOutputStream data) throws IOException {
+        super.writePacketData(data);
+        BCLog.logger.info("TilePoweredMachineBase.writePacketData");
+        data.writeBoolean(shaftPowerInputManager.getPower() > 0);
+        if (shaftPowerInputManager.getPower() > 0) {
+            data.writeInt(shaftPowerInputManager.getTorque());
+            data.writeInt(shaftPowerInputManager.getOmega());
+        }
     }
 
     @Override
-    public int receiveEnergy(ForgeDirection from, int maxReceive, boolean simulate) {
-        if (energyStorage == null)
-            return 0;
-        return energyStorage.receiveEnergy(maxReceive, simulate);
+    public void readPacketData(DataInputStream data) throws IOException {
+        super.readPacketData(data);
+        BCLog.logger.info("TilePoweredMachineBase.readPacketData");
+        if (data.readBoolean())
+        {
+            shaftPowerInputManager.setState(data.readInt(), data.readInt());
+        }
+        else
+        {
+            shaftPowerInputManager.setState(0, 0);
+        }
+    }
+
+	/* Rotary Power */
+
+    @Override
+    public void onPowerChange(ShaftPowerInputManager shaftPowerInputManager) {
+        this.sendUpdateToClient();
     }
 
     @Override
-    public int extractEnergy(ForgeDirection from, int maxExtract, boolean simulate) {
-        return 0;
+    public TileEntity getTileEntity() {
+        return this;
     }
 
     @Override
-    public int getEnergyStored(ForgeDirection from) {
-        if (energyStorage == null)
-            return 0;
-        return energyStorage.getEnergyStored();
+    public boolean addPower(int addTorque, int addOmega, long addPower, ForgeDirection inputDirection) {
+        return shaftPowerInputManager != null && shaftPowerInputManager.addPower(addTorque, addOmega, addPower, inputDirection);
     }
 
     @Override
-    public int getMaxEnergyStored(ForgeDirection from) {
-        if (energyStorage == null)
-            return 0;
-        return energyStorage.getMaxEnergyStored();
+    public int getStageCount() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getStageCount() : 0;
     }
 
+    @Override
+    public void setIORenderAlpha(int i) {
+        if (shaftPowerInputManager != null) shaftPowerInputManager.setIORenderAlpha(i);
+    }
+
+    @Override
+    public boolean canReadFrom(ForgeDirection forgeDirection) {
+        return true;
+    }
+
+    @Override
+    public boolean isReceiving() {
+        return shaftPowerInputManager != null && shaftPowerInputManager.isReceiving();
+    }
+
+    @Override
+    public int getMinTorque(int stageIndex) {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getMinTorque(stageIndex) : 1;
+    }
+
+    @Override
+    public int getMinOmega(int stageIndex) {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getMinOmega(stageIndex) : 1;
+    }
+
+    @Override
+    public long getMinPower(int stageIndex) {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getMinPower(stageIndex) : 1;
+    }
+
+    @Override
+    public long getPower() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getPower() : 0;
+    }
+
+    @Override
+    public int getOmega() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getOmega() : 0;
+    }
+
+    @Override
+    public int getTorque() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getTorque() : 0;
+    }
+
+    @Override
+    public String getName() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getName() : "[Railcraft]";
+    }
+
+    @Override
+    public int getIORenderAlpha() {
+        return shaftPowerInputManager != null ? shaftPowerInputManager.getIORenderAlpha() : 0;
+    }
 }
