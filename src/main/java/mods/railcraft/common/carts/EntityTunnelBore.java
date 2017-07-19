@@ -143,8 +143,11 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
     }
 
     protected final IInventory invFuel = new InventoryMapper(this, 1, 6);
-    protected final IInventory invBallast = new InventoryMapper(this, 7, 9);
-    protected final IInventory invRails = new InventoryMapper(this, 16, 9);
+    protected final IInventory invSiding = new InventoryMapper(this, 7, 9);
+    protected final IInventory invPosts = new InventoryMapper(this, 13, 2);
+    protected final IInventory invLights = new InventoryMapper(this, 15, 1);
+    protected final IInventory invRails = new InventoryMapper(this, 16, 5);
+    protected final IInventory invBallast = new InventoryMapper(this, 21, 4);
     //    protected static final int WATCHER_ID_BURN_TIME = 22;
     protected boolean degreeCalc = false;
     protected int delay = 0;
@@ -403,7 +406,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
                     z = MathHelper.floor_double(getZAhead(posZ, offset));
 
                     if (placeBallast) {
-                        boolean placed = placeBallast(x, y - 1, z);
+                        boolean placed = placeBallast(x, y - 1, z, dir);
                         if (placed)
                             setDelay(STANDARD_DELAY);
                         else {
@@ -637,25 +640,41 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
     }
 
     protected void stockBallast() {
+        // invPosts invLights
         if (InvTools.isEmptySlot(invBallast)) {
             ItemStack stack = CartTools.transferHelper.pullStack(this, StackFilter.BALLAST);
             if (stack != null)
                 InvTools.moveItemStack(stack, invBallast);
         }
+        if (InvTools.isEmptySlot(invSiding)) {
+            ItemStack stack = CartTools.transferHelper.pullStack(this, StackFilter.SIDING);
+            if (stack != null)
+                InvTools.moveItemStack(stack, invSiding);
+        }
+        if (InvTools.isEmptySlot(invPosts)) {
+            ItemStack stack = CartTools.transferHelper.pullStack(this, StackFilter.POSTS);
+            if (stack != null)
+                InvTools.moveItemStack(stack, invPosts);
+        }
+        if (InvTools.isEmptySlot(invLights)) {
+            ItemStack stack = CartTools.transferHelper.pullStack(this, StackFilter.LIGHTING);
+            if (stack != null)
+                InvTools.moveItemStack(stack, invLights);
+        }
     }
 
-    protected boolean placeBallast(int i, int j, int k) {
+    protected boolean placeBallast(int i, int j, int k, EnumTrackMeta dir) {
         if (!worldObj.isSideSolid(i, j, k, ForgeDirection.UP))
             for (int inv = 0; inv < invBallast.getSizeInventory(); inv++) {
                 ItemStack stack = invBallast.getStackInSlot(inv);
                 if (stack != null && BallastRegistry.isItemBallast(stack)) {
-                    for (int y = j; y > j - MAX_FILL_DEPTH; y--) {
-                        if (worldObj.isSideSolid(i, y, k, ForgeDirection.UP)) {
+                    //for (int y = j; y > j - MAX_FILL_DEPTH; y--) {
+                        if (worldObj.isSideSolid(i, j, k, ForgeDirection.UP)) {
                             invBallast.decrStackSize(inv, 1);
                             worldObj.setBlock(i, j, k, InvTools.getBlockFromStack(stack), stack.getItemDamage(), 3);
                             return true;
                         }
-                    }
+                    //}
                     return false;
                 }
             }
@@ -720,7 +739,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
         boolean clear = true;
         int ii = i;
         int kk = k;
-        for (int jj = j; jj < j + 3; jj++) {
+        for (int jj = j - 1; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
 
@@ -728,7 +747,15 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii--;
         else
             kk--;
-        for (int jj = j; jj < j + 3; jj++) {
+        for (int jj = j - 1; jj < j + 4; jj++) {
+            clear = clear && mineBlock(ii, jj, kk, dir);
+        }
+
+        if (dir == EnumTrackMeta.NORTH_SOUTH)
+            ii--;
+        else
+            kk--;
+        for (int jj = j - 1; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
 
@@ -738,7 +765,15 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii++;
         else
             kk++;
-        for (int jj = j; jj < j + 3; jj++) {
+        for (int jj = j - 1; jj < j + 4; jj++) {
+            clear = clear && mineBlock(ii, jj, kk, dir);
+        }
+
+        if (dir == EnumTrackMeta.NORTH_SOUTH)
+            ii++;
+        else
+            kk++;
+        for (int jj = j - 1; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
         return clear;
@@ -819,7 +854,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
         float hardness = 0;
         int ii = i;
         int kk = k;
-        for (int jj = j; jj < j + 3; jj++) {
+        for (int jj = j - 1; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
@@ -827,7 +862,15 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii--;
         else
             kk--;
-        for (int jj = j; jj < j + 3; jj++) {
+        for (int jj = j - 1; jj < j + 4; jj++) {
+            hardness += getBlockHardness(ii, jj, kk, dir);
+        }
+
+        if (dir == EnumTrackMeta.NORTH_SOUTH)
+            ii--;
+        else
+            kk--;
+        for (int jj = j - 1; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
@@ -837,7 +880,15 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii++;
         else
             kk++;
-        for (int jj = j; jj < j + 3; jj++) {
+        for (int jj = j - 1; jj < j + 4; jj++) {
+            hardness += getBlockHardness(ii, jj, kk, dir);
+        }
+
+        if (dir == EnumTrackMeta.NORTH_SOUTH)
+            ii++;
+        else
+            kk++;
+        for (int jj = j - 1; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 

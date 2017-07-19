@@ -8,9 +8,10 @@
  */
 package mods.railcraft.common.blocks.machine.alpha;
 
+import Reika.RotaryCraft.API.Power.IShaftPowerInputCaller;
+import Reika.RotaryCraft.API.Power.ShaftPowerInputManager;
+import buildcraft.api.core.BCLog;
 import buildcraft.api.statements.IActionExternal;
-import cofh.api.energy.EnergyStorage;
-import cofh.api.energy.IEnergyHandler;
 import mods.railcraft.api.crafting.IRockCrusherRecipe;
 import mods.railcraft.api.crafting.RailcraftCraftingManager;
 import mods.railcraft.common.blocks.RailcraftBlocks;
@@ -46,12 +47,15 @@ import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
  * @author CovertJaguar <http://www.railcraft.info>
  */
-public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyHandler, IHasWork, ISidedInventory {
+public class TileRockCrusher extends TileMultiBlockInventory implements IShaftPowerInputCaller, IHasWork, ISidedInventory {
     public static final int SLOT_INPUT = 0;
     public static final int SLOT_OUTPUT = 9;
     private final static int PROCESS_TIME = 100;
@@ -128,7 +132,7 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
         patterns.add(new MultiBlockPattern(map2));
     }
     private int processTime;
-    private EnergyStorage energyStorage;
+    protected ShaftPowerInputManager shaftPowerInputManager;
     private boolean isWorking = false;
     private boolean paused = false;
 
@@ -136,7 +140,7 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
         super(EnumMachineAlpha.ROCK_CRUSHER.getTag() + ".name", 18, patterns);
 
         if (RailcraftConfig.machinesRequirePower())
-            energyStorage = new EnergyStorage(MAX_ENERGY, MAX_RECEIVE, KILLING_POWER_COST);
+            shaftPowerInputManager = new ShaftPowerInputManager(this, "rock crusher", 256, 1, 65536);
     }
 
     public static void placeRockCrusher(World world, int x, int y, int z, int patternIndex, List<ItemStack> input, List<ItemStack> output) {
@@ -197,14 +201,24 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
         return true;
     }
 
-    private boolean useMasterEnergy(int amount, boolean doRemove) {
+    private boolean isMasterBlockPowered() {
         TileRockCrusher mBlock = (TileRockCrusher) getMasterBlock();
         if (mBlock != null)
-            if (mBlock.energyStorage == null)
+            if (mBlock.getEnergyStorage() == null)
                 return true;
             else
-                return mBlock.energyStorage.extractEnergy(amount, !doRemove) == amount;
+                return mBlock.getEnergyStorage().isStagePowered(0);
         return false;
+    }
+
+    private ShaftPowerInputManager getMasterShaftPowerInputManager() {
+        TileRockCrusher mBlock = (TileRockCrusher) getMasterBlock();
+        if (mBlock != null)
+            if (mBlock.getEnergyStorage() == null)
+                return shaftPowerInputManager;
+            else
+                return mBlock.getEnergyStorage();
+        return shaftPowerInputManager;
     }
 
     @Override
@@ -215,17 +229,17 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
 
             if (isStructureValid()) {
                 EntityItem item = TileEntityHopper.func_145897_a(worldObj, xCoord, yCoord + 1, zCoord);
-                if (item != null && useMasterEnergy(SUCKING_POWER_COST, false)) {
+                if (item != null && isMasterBlockPowered()) {
                     ItemStack stack = item.getEntityItem().copy();
                     if (InventoryManipulator.get(invInput).addStack(stack) != null)
-                        useMasterEnergy(SUCKING_POWER_COST, true);
+                        isMasterBlockPowered();
                     item.setDead();
                 }
 
                 EntityLivingBase entity = MiscTools.getEntityAt(worldObj, EntityLivingBase.class, xCoord, yCoord + 1, zCoord);
-                if (entity != null && useMasterEnergy(KILLING_POWER_COST, false))
+                if (entity != null && isMasterBlockPowered())
                     if (entity.attackEntityFrom(RailcraftDamageSource.CRUSHER, 10))
-                        useMasterEnergy(KILLING_POWER_COST, true);
+                        isMasterBlockPowered();
             }
 
             if (isMaster()) {
@@ -273,11 +287,9 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
                         }
                     } else {
                         isWorking = true;
-                        if (energyStorage != null) {
-                            int energy = energyStorage.extractEnergy(CRUSHING_POWER_COST_PER_TICK, true);
-                            if (energy >= CRUSHING_POWER_COST_PER_TICK) {
+                        if (getMasterShaftPowerInputManager() != null) {
+                            if (getMasterShaftPowerInputManager().isStagePowered(0)) {
                                 processTime++;
-                                energyStorage.extractEnergy(CRUSHING_POWER_COST_PER_TICK, false);
                             }
                         } else
                             processTime++;
@@ -319,18 +331,12 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
     public void writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setInteger("processTime", processTime);
-
-        if (energyStorage != null)
-            energyStorage.writeToNBT(data);
     }
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         processTime = data.getInteger("processTime");
-
-        if (energyStorage != null)
-            energyStorage.readFromNBT(data);
     }
 
     public int getProcessTime() {
@@ -406,41 +412,109 @@ public class TileRockCrusher extends TileMultiBlockInventory implements IEnergyH
         return false;
     }
 
-    public EnergyStorage getEnergyStorage() {
-        TileRockCrusher mBlock = (TileRockCrusher) getMasterBlock();
-        if (mBlock != null && mBlock.energyStorage != null)
-            return mBlock.energyStorage;
-        return energyStorage;
+    public ShaftPowerInputManager getEnergyStorage() {
+        return getMasterShaftPowerInputManager();
     }
 
     @Override
-    public int receiveEnergy(ForgeDirection from, int maxReceive, boolean simulate) {
-        if (getEnergyStorage() == null)
-            return 0;
-        return getEnergyStorage().receiveEnergy(maxReceive, simulate);
+    public void writePacketData(DataOutputStream data) throws IOException {
+        super.writePacketData(data);
+        BCLog.logger.info("TileRockCrusher.writePacketData");
+        data.writeBoolean(isMaster() && shaftPowerInputManager.getPower() > 0);
+        if (isMaster() && shaftPowerInputManager.getPower() > 0) {
+            data.writeInt(shaftPowerInputManager.getTorque());
+            data.writeInt(shaftPowerInputManager.getOmega());
+        }
     }
 
     @Override
-    public int extractEnergy(ForgeDirection from, int maxExtract, boolean simulate) {
-        return 0;
+    public void readPacketData(DataInputStream data) throws IOException {
+        super.readPacketData(data);
+        BCLog.logger.info("TileRockCrusher.readPacketData");
+        if (data.readBoolean())
+        {
+            shaftPowerInputManager.setState(data.readInt(), data.readInt());
+        }
+        else
+        {
+            shaftPowerInputManager.setState(0, 0);
+        }
+    }
+
+	/* Rotary Power */
+
+    @Override
+    public void onPowerChange(ShaftPowerInputManager shaftPowerInputManager) {
+        this.sendUpdateToClient();
     }
 
     @Override
-    public int getEnergyStored(ForgeDirection from) {
-        if (getEnergyStorage() == null)
-            return 0;
-        return getEnergyStorage().getEnergyStored();
+    public TileEntity getTileEntity() {
+        return this;
     }
 
     @Override
-    public int getMaxEnergyStored(ForgeDirection from) {
-        if (getEnergyStorage() == null)
-            return 0;
-        return getEnergyStorage().getMaxEnergyStored();
+    public boolean addPower(int addTorque, int addOmega, long addPower, ForgeDirection inputDirection) {
+        return getMasterShaftPowerInputManager() != null && getMasterShaftPowerInputManager().addPower(addTorque, addOmega, addPower, inputDirection);
     }
 
     @Override
-    public boolean canConnectEnergy(ForgeDirection from) {
-        return RailcraftConfig.machinesRequirePower();
+    public int getStageCount() {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getStageCount() : 0;
+    }
+
+    @Override
+    public void setIORenderAlpha(int i) {
+        if (getMasterShaftPowerInputManager() != null) getMasterShaftPowerInputManager().setIORenderAlpha(i);
+    }
+
+    @Override
+    public boolean canReadFrom(ForgeDirection forgeDirection) {
+        return true;
+    }
+
+    @Override
+    public boolean isReceiving() {
+        return getMasterShaftPowerInputManager() != null && getMasterShaftPowerInputManager().isReceiving();
+    }
+
+    @Override
+    public int getMinTorque(int stageIndex) {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getMinTorque(stageIndex) : 1;
+    }
+
+    @Override
+    public int getMinOmega(int stageIndex) {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getMinOmega(stageIndex) : 1;
+    }
+
+    @Override
+    public long getMinPower(int stageIndex) {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getMinPower(stageIndex) : 1;
+    }
+
+    @Override
+    public long getPower() {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getPower() : 0;
+    }
+
+    @Override
+    public int getOmega() {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getOmega() : 0;
+    }
+
+    @Override
+    public int getTorque() {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getTorque() : 0;
+    }
+
+    @Override
+    public String getName() {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getName() : "[Railcraft]";
+    }
+
+    @Override
+    public int getIORenderAlpha() {
+        return getMasterShaftPowerInputManager() != null ? getMasterShaftPowerInputManager().getIORenderAlpha() : 0;
     }
 }

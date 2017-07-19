@@ -30,6 +30,8 @@ public abstract class BallastRegistry {
 
     static {
         registerBallast(Blocks.gravel, 0);
+        registerBallast(Blocks.stonebrick, 0);
+        registerBallast(Blocks.sandstone, 0);
     }
 
     public static void registerBallast(Block block, int metadata) {
