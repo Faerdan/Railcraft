@@ -72,7 +72,7 @@ public enum StackFilter implements IStackFilter {
             if (stack.getItem() instanceof ItemBlock)
             {
                 Block itemBlock = ((ItemBlock)stack.getItem()).field_150939_a;
-                return (itemBlock == Blocks.stone_brick_stairs || itemBlock == Blocks.sandstone_stairs);
+                return (itemBlock == Blocks.nether_brick_stairs || itemBlock == Blocks.brick_stairs || itemBlock == Blocks.stone_brick_stairs || itemBlock == Blocks.sandstone_stairs);
             }
             return false;
         }

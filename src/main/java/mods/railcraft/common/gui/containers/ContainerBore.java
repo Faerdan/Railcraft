@@ -10,16 +10,11 @@ package mods.railcraft.common.gui.containers;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.entity.player.EntityPlayer;
+import mods.railcraft.common.gui.slots.*;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemStack;
 import mods.railcraft.common.carts.EntityTunnelBore;
-import mods.railcraft.common.gui.slots.SlotBallast;
-import mods.railcraft.common.gui.slots.SlotBore;
-import mods.railcraft.common.gui.slots.SlotFuel;
-import mods.railcraft.common.gui.slots.SlotTrack;
 
 public class ContainerBore extends RailcraftContainer {
 
@@ -27,6 +22,9 @@ public class ContainerBore extends RailcraftContainer {
     private Slot ballast;
     private Slot fuel;
     private Slot track;
+    private Slot siding;
+    private Slot posts;
+    private Slot lighting;
     private int lastBurnTime;
     private int lastFuel;
 
@@ -41,11 +39,29 @@ public class ContainerBore extends RailcraftContainer {
         }
 
         for (int i = 0; i < 9; i++) {
-            addSlot(ballast = new SlotBallast(bore, i + 7, 8 + i * 18, 72));
+            //if (i < 6)
+            //{
+                addSlot(siding = new SlotSiding(bore, i + 7, 8 + i * 18, 72));
+            //}
+            /*else if (i < 8)
+            {
+                addSlot(posts = new SlotPosts(bore, i + 7, 8 + i * 18, 72));
+            }
+            else
+            {
+                addSlot(lighting = new SlotLighting(bore, i + 7, 8 + i * 18, 72));
+            }*/
         }
 
         for (int i = 0; i < 9; i++) {
-            addSlot(track = new SlotTrack(bore, i + 16, 8 + i * 18, 108));
+            if (i < 5)
+            {
+                addSlot(track = new SlotTrack(bore, i + 16, 8 + i * 18, 108));
+            }
+            else
+            {
+                addSlot(ballast = new SlotBallast(bore, i + 16, 8 + i * 18, 108));
+            }
         }
 
         for (int i = 0; i < 3; i++) {

@@ -8,6 +8,7 @@
  */
 package mods.railcraft.common.carts;
 
+import buildcraft.api.core.BCLog;
 import mods.railcraft.api.carts.CartTools;
 import mods.railcraft.api.carts.ILinkableCart;
 import mods.railcraft.api.carts.bore.IBoreHead;
@@ -32,6 +33,7 @@ import mods.railcraft.common.util.misc.Game;
 import mods.railcraft.common.util.misc.MiscTools;
 import mods.railcraft.common.util.misc.RailcraftDamageSource;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
@@ -55,7 +57,8 @@ import java.util.*;
 public class EntityTunnelBore extends CartContainerBase implements IInventory, ILinkableCart {
     public static final float SPEED = 0.03F;
     public static final float LENGTH = 6.2f;
-    public static final int MAX_FILL_DEPTH = 10;
+    public static final int SUPPORT_PLACEMENT_DISTANCE = 16;
+    public static final int MAX_FILL_DEPTH = 6;
     public static final int FAIL_DELAY = 200;
     public static final int STANDARD_DELAY = 5;
     public static final int LAYER_DELAY = 40;
@@ -144,8 +147,8 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
 
     protected final IInventory invFuel = new InventoryMapper(this, 1, 6);
     protected final IInventory invSiding = new InventoryMapper(this, 7, 9);
-    protected final IInventory invPosts = new InventoryMapper(this, 13, 2);
-    protected final IInventory invLights = new InventoryMapper(this, 15, 1);
+    //protected final IInventory invPosts = new InventoryMapper(this, 13, 2);
+    //protected final IInventory invLights = new InventoryMapper(this, 15, 1);
     protected final IInventory invRails = new InventoryMapper(this, 16, 5);
     protected final IInventory invBallast = new InventoryMapper(this, 21, 4);
     //    protected static final int WATCHER_ID_BURN_TIME = 22;
@@ -405,28 +408,19 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
                     x = MathHelper.floor_double(getXAhead(posX, offset));
                     z = MathHelper.floor_double(getZAhead(posZ, offset));
 
-                    if (placeBallast) {
-                        boolean placed = placeBallast(x, y - 1, z, dir);
-                        if (placed)
-                            setDelay(STANDARD_DELAY);
-                        else {
-                            setDelay(FAIL_DELAY);
-                            setActive(false);
-                        }
-                        placeBallast = false;
-                    } else if (!worldObj.isSideSolid(x, y - 1, z, ForgeDirection.UP)) {
-                        placeBallast = true;
-                        setDelay(BALLAST_DELAY);
+                    boolean placed = placeBallast(x, y - 1, z, dir);
+                    if (!placed)
+                    {
+                        setDelay(FAIL_DELAY);
+                        setActive(false);
                     }
-                }
 
-                if (getDelay() == 0) {
-                    float offset = 0.8f;
+                    offset = 0.8f;
                     x = MathHelper.floor_double(getXAhead(posX, offset));
                     z = MathHelper.floor_double(getZAhead(posZ, offset));
 
                     if (placeRail) {
-                        boolean placed = placeTrack(x, y, z, dir);
+                        placed = placeTrack(x, y, z, dir);
                         if (placed)
                             setDelay(STANDARD_DELAY);
                         else {
@@ -651,7 +645,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             if (stack != null)
                 InvTools.moveItemStack(stack, invSiding);
         }
-        if (InvTools.isEmptySlot(invPosts)) {
+        /*if (InvTools.isEmptySlot(invPosts)) {
             ItemStack stack = CartTools.transferHelper.pullStack(this, StackFilter.POSTS);
             if (stack != null)
                 InvTools.moveItemStack(stack, invPosts);
@@ -660,25 +654,149 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ItemStack stack = CartTools.transferHelper.pullStack(this, StackFilter.LIGHTING);
             if (stack != null)
                 InvTools.moveItemStack(stack, invLights);
-        }
+        }*/
     }
 
-    protected boolean placeBallast(int i, int j, int k, EnumTrackMeta dir) {
-        if (!worldObj.isSideSolid(i, j, k, ForgeDirection.UP))
-            for (int inv = 0; inv < invBallast.getSizeInventory(); inv++) {
-                ItemStack stack = invBallast.getStackInSlot(inv);
-                if (stack != null && BallastRegistry.isItemBallast(stack)) {
-                    //for (int y = j; y > j - MAX_FILL_DEPTH; y--) {
-                        if (worldObj.isSideSolid(i, j, k, ForgeDirection.UP)) {
-                            invBallast.decrStackSize(inv, 1);
-                            worldObj.setBlock(i, j, k, InvTools.getBlockFromStack(stack), stack.getItemDamage(), 3);
-                            return true;
-                        }
-                    //}
-                    return false;
+    protected boolean placeBallast(int x, int y, int z, EnumTrackMeta dir) {
+
+        if (!placeStructureBlock(invBallast, x, y, z))
+        {
+            //BCLog.logger.info("TunnelBore: failed to place block");
+            return false;
+        }
+
+        int pX;
+        int pZ;
+
+        int metadata;
+        if (dir == EnumTrackMeta.NORTH_SOUTH)
+        {
+            metadata = 0;
+            pX = x - 1;
+            pZ = z;
+        }
+        else
+        {
+            metadata = 2;
+            pX = x;
+            pZ = z - 1;
+        }
+        if (!placeStructureBlock(invSiding, pX, y, pZ, metadata))
+        {
+            //BCLog.logger.info("TunnelBore: failed to place block");
+            return false;
+        }
+
+        if (dir == EnumTrackMeta.NORTH_SOUTH)
+        {
+            metadata = 1;
+            pX = x + 1;
+            pZ = z;
+        }
+        else
+        {
+            metadata = 3;
+            pX = x;
+            pZ = z + 1;
+        }
+        if (!placeStructureBlock(invSiding, pX, y, pZ, metadata))
+        {
+            //BCLog.logger.info("TunnelBore: failed to place block");
+            return false;
+        }
+
+        if ((dir == EnumTrackMeta.NORTH_SOUTH && (z - 1) % SUPPORT_PLACEMENT_DISTANCE == 0) || (dir != EnumTrackMeta.NORTH_SOUTH && (x - 1) % SUPPORT_PLACEMENT_DISTANCE == 0))
+        {
+            if (dir == EnumTrackMeta.NORTH_SOUTH)
+            {
+                metadata = 7;
+            }
+            else
+            {
+                metadata = 5;
+            }
+            if (!placeStructureBlock(invSiding, x, y - 1, z, metadata))
+            {
+                //BCLog.logger.info("TunnelBore: failed to place block");
+                return false;
+            }
+        }
+        else if ((dir == EnumTrackMeta.NORTH_SOUTH && (z + 1) % SUPPORT_PLACEMENT_DISTANCE == 0) || (dir != EnumTrackMeta.NORTH_SOUTH && (x + 1) % SUPPORT_PLACEMENT_DISTANCE == 0))
+        {
+            if (dir == EnumTrackMeta.NORTH_SOUTH)
+            {
+                metadata = 6;
+            }
+            else
+            {
+                metadata = 4;
+            }
+            if (!placeStructureBlock(invSiding, x, y - 1, z, metadata))
+            {
+                //BCLog.logger.info("TunnelBore: failed to place block");
+                return false;
+            }
+        }
+        else if ((dir == EnumTrackMeta.NORTH_SOUTH && z % SUPPORT_PLACEMENT_DISTANCE == 0) || (dir != EnumTrackMeta.NORTH_SOUTH && x % SUPPORT_PLACEMENT_DISTANCE == 0))
+        {
+            boolean hasSolidFoundation = false;
+            for (int tY = 0; tY < (MAX_FILL_DEPTH + 1); tY++) {
+                Block block = worldObj.getBlock(x, y - tY, z);
+                if (block.getMaterial() != Material.air && block.getMaterial() != Material.water && !replaceableBlocks.contains(block))
+                {
+                    hasSolidFoundation = true;
+                    break;
                 }
             }
-        return false;
+
+            if (!hasSolidFoundation)
+            {
+                //BCLog.logger.info("TunnelBore: placeBallast has no solid foundation");
+                return false;
+            }
+            
+            for (int tY = 1; tY < MAX_FILL_DEPTH; tY++) {
+                Block block = worldObj.getBlock(x, y - tY, z);
+                if (block.getMaterial() != Material.air && block.getMaterial() != Material.water && !replaceableBlocks.contains(block))
+                {
+                    break;
+                }
+                else
+                {
+                    if (!placeStructureBlock(invBallast, x, y - tY, z))
+                    {
+                        //BCLog.logger.info("TunnelBore: failed to place block");
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    protected boolean placeStructureBlock(IInventory invStructure, int x, int y, int z)
+    {
+        return placeStructureBlock(invStructure, x, y, z, -1);
+    }
+
+    protected boolean placeStructureBlock(IInventory invStructure, int x, int y, int z, int metadata)
+    {
+        Block block = worldObj.getBlock(x, y, z);
+        if (block.getMaterial() == Material.air || block.getMaterial() == Material.water || replaceableBlocks.contains(block))
+        {
+            for (int inv = 0; inv < invStructure.getSizeInventory(); inv++) {
+                ItemStack stack = invStructure.getStackInSlot(inv);
+                if (stack != null) {
+                    metadata = metadata > -1 ? metadata : stack.getItemDamage();
+                    invStructure.decrStackSize(inv, 1);
+                    worldObj.setBlock(x, y, z, InvTools.getBlockFromStack(stack), metadata, 3);
+                    return true;
+                }
+            }
+            return false;
+        }
+        // Not a replaceable block, ignore
+        return true;
     }
 
     protected void stockTracks() {
@@ -739,7 +857,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
         boolean clear = true;
         int ii = i;
         int kk = k;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
 
@@ -747,7 +865,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii--;
         else
             kk--;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
 
@@ -755,7 +873,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii--;
         else
             kk--;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
 
@@ -765,7 +883,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii++;
         else
             kk++;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
 
@@ -773,7 +891,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii++;
         else
             kk++;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             clear = clear && mineBlock(ii, jj, kk, dir);
         }
         return clear;
@@ -854,7 +972,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
         float hardness = 0;
         int ii = i;
         int kk = k;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
@@ -862,7 +980,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii--;
         else
             kk--;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
@@ -870,7 +988,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii--;
         else
             kk--;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
@@ -880,7 +998,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii++;
         else
             kk++;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
@@ -888,7 +1006,7 @@ public class EntityTunnelBore extends CartContainerBase implements IInventory, I
             ii++;
         else
             kk++;
-        for (int jj = j - 1; jj < j + 4; jj++) {
+        for (int jj = j - 2; jj < j + 4; jj++) {
             hardness += getBlockHardness(ii, jj, kk, dir);
         }
 
