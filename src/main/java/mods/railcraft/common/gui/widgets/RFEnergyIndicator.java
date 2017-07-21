@@ -20,9 +20,9 @@ public class RFEnergyIndicator extends IndicatorController {
     private int energy;
     private final int maxEnergy;
 
-    public RFEnergyIndicator(IEnergyHandler energyHandler) {
+    /*public RFEnergyIndicator(IEnergyHandler energyHandler) {
         this.maxEnergy = energyHandler.getMaxEnergyStored(ForgeDirection.UNKNOWN);
-    }
+    }*/
 
     public RFEnergyIndicator(int maxEnergy) {
         this.maxEnergy = maxEnergy;
@@ -30,7 +30,7 @@ public class RFEnergyIndicator extends IndicatorController {
 
     @Override
     protected void refreshToolTip() {
-        tip.text = String.format("%,d / %,d RF", energy, maxEnergy);
+        tip.text = String.format("%,d / %,d Energy", energy, maxEnergy);
     }
 
     @Override

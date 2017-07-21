@@ -75,7 +75,7 @@ public class TileRFUnloader extends TileRFLoaderBase implements IEnergyProvider,
 
         EntityCartRF rfCart = (EntityCartRF) cart;
 
-        if (amountRF < getMaxRF() && rfCart.getRF() > 0) {
+        if (amountRF < getMaxRF() && rfCart.getEnergy() > 0) {
             int request = TRANSFER_RATE;
 
             int room = getMaxRF() - getRF();
@@ -83,7 +83,7 @@ public class TileRFUnloader extends TileRFLoaderBase implements IEnergyProvider,
                 request = room;
             }
 
-            double extracted = rfCart.removeRF(request);
+            double extracted = 0; // rfCart.removeRF(request); // disabled rf
             amountRF += extracted;
             transferred = extracted > 0;
         }
@@ -100,7 +100,7 @@ public class TileRFUnloader extends TileRFLoaderBase implements IEnergyProvider,
         EntityCartRF rfCart = (EntityCartRF) cart;
         if (!waitTillEmpty)
             return true;
-        else if (rfCart.getRF() <= 0)
+        else if (rfCart.getEnergy() <= 0)
             return true;
         return false;
     }

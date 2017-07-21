@@ -8,10 +8,13 @@
  */
 package mods.railcraft.common.carts;
 
+import buildcraft.api.core.BCLog;
 import mods.railcraft.api.carts.ICartContentsTextureProvider;
+import mods.railcraft.api.electricity.IElectricMinecart;
 import mods.railcraft.common.gui.EnumGui;
 import mods.railcraft.common.gui.GuiHandler;
 import mods.railcraft.common.util.misc.Game;
+import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -21,9 +24,10 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class EntityCartRF extends CartBase implements ICartContentsTextureProvider {
-    private static final int DATA_ID_RF = 25;
-    private static final int RF_CAP = 2000000;
+public final class EntityCartRF extends CartBase implements IElectricMinecart /*, ICartContentsTextureProvider */ {
+    private static final int ENERGY_CAP = 300000;
+
+    private final ChargeHandler chargeHandler = new ChargeHandler(this, ChargeHandler.Type.STORAGE, ENERGY_CAP);
 
     public EntityCartRF(World world) {
         super(world);
@@ -43,45 +47,14 @@ public final class EntityCartRF extends CartBase implements ICartContentsTexture
     @Override
     protected void entityInit() {
         super.entityInit();
-        dataWatcher.addObject(DATA_ID_RF, 0);
     }
 
-    public int addRF(int amount) {
-        if (amount <= 0)
-            return 0;
-        if (getRF() >= RF_CAP)
-            return 0;
-        if (RF_CAP - getRF() >= amount) {
-            setRF(getRF() + amount);
-            return amount;
-        }
-        int used = RF_CAP - getRF();
-        setRF(RF_CAP);
-        return used;
+    public double getEnergy() {
+        return chargeHandler.getCharge();
     }
 
-    public int removeRF(int request) {
-        if (request <= 0)
-            return 0;
-        if (getRF() >= request) {
-            setRF(getRF() - request);
-            return request;
-        }
-        int ret = getRF();
-        setRF(0);
-        return ret;
-    }
-
-    public void setRF(int amount) {
-        dataWatcher.updateObject(DATA_ID_RF, amount);
-    }
-
-    public int getRF() {
-        return dataWatcher.getWatchableObjectInt(DATA_ID_RF);
-    }
-
-    public int getMaxRF() {
-        return RF_CAP;
+    public double getMaxEnergy() {
+        return chargeHandler.getCapacity();
     }
 
     @Override
@@ -94,12 +67,20 @@ public final class EntityCartRF extends CartBase implements ICartContentsTexture
     @Override
     public void onUpdate() {
         super.onUpdate();
-
         if (Game.isNotHost(worldObj))
             return;
+        chargeHandler.tick();
+        //BCLog.logger.info(String.format("TileElectricFeeder.onUpdate: Charge %s / %s", chargeHandler.getCharge(), chargeHandler.getCapacity()));
+    }
 
-        if (getRF() > RF_CAP)
-            setRF(RF_CAP);
+    @Override
+    protected void func_145821_a(int trackX, int trackY, int trackZ, double maxSpeed, double slopeAdjustment, Block trackBlock, int trackMeta) {
+        super.func_145821_a(trackX, trackY, trackZ, maxSpeed, slopeAdjustment, trackBlock, trackMeta);
+        if (Game.isNotHost(worldObj))
+            return;
+        chargeHandler.tickOnTrack(trackX, trackY, trackZ);
+
+        //BCLog.logger.info(String.format("TileElectricFeeder.func_145821_a: Charge %s / %s", chargeHandler.getCharge(), chargeHandler.getCapacity()));
     }
 
     @Override
@@ -114,24 +95,24 @@ public final class EntityCartRF extends CartBase implements ICartContentsTexture
         return false;
     }
 
-    @Override
+    /*@Override
     public final float getMaxCartSpeedOnRail() {
         int numLocomotives = Train.getTrain(this).getNumRunningLocomotives();
         if (numLocomotives == 0)
             return super.getMaxCartSpeedOnRail();
         return Math.min(1.2F, 0.08F + (numLocomotives - 1) * 0.075F);
-    }
+    }*/
 
     @Override
     protected void readEntityFromNBT(NBTTagCompound nbt) {
         super.readEntityFromNBT(nbt);
-        setRF(nbt.getInteger("rf"));
+        chargeHandler.readFromNBT(nbt);
     }
 
     @Override
     protected void writeEntityToNBT(NBTTagCompound nbt) {
         super.writeEntityToNBT(nbt);
-        nbt.setInteger("rf", getRF());
+        chargeHandler.writeToNBT(nbt);
     }
 
 //    @Override
@@ -144,8 +125,13 @@ public final class EntityCartRF extends CartBase implements ICartContentsTexture
         return CartConstants.STANDARD_DRAG;
     }
 
-    @Override
+    /*@Override
     public IIcon getBlockTextureOnSide(int side) {
         return null;
+    }*/
+
+    @Override
+    public ChargeHandler getChargeHandler() {
+        return chargeHandler;
     }
 }

@@ -48,7 +48,7 @@ public class TileElectricFeeder extends TileMachineBase implements IShaftPowerIn
         if (shaftPowerInputManager.isStagePowered(0)) {
             chargeHandler.addCharge(5D * ((double)shaftPowerInputManager.getPower() / 16384D));
 
-            BCLog.logger.info(String.format("TileElectricFeeder: Add charge %s for power %s (total %s)", (5D * ((double)shaftPowerInputManager.getPower() / 16384D)), shaftPowerInputManager.getPower(), chargeHandler.getCharge()));
+            //BCLog.logger.info(String.format("TileElectricFeeder: Add charge %s for power %s (total %s)", (5D * ((double)shaftPowerInputManager.getPower() / 16384D)), shaftPowerInputManager.getPower(), chargeHandler.getCharge()));
             /*double capacity = chargeHandler.getCapacity();
             try {
                 chargeHandler.setCharge(capacity);

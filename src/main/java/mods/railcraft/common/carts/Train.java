@@ -370,12 +370,12 @@ public class Train implements Iterable<EntityMinecart> {
         int numLocomotives = getNumRunningLocomotives();
         for (EntityMinecart c : this) {
             float baseSpeed = c.getMaxCartSpeedOnRail();
-            if (numLocomotives > 0 && !(c instanceof EntityCartEnergy) && c instanceof IElectricMinecart) {
+            /*if (numLocomotives > 0 && !(c instanceof EntityCartEnergy) && c instanceof IElectricMinecart) {
                 IElectricMinecart e = (IElectricMinecart) c;
                 if (e.getChargeHandler().getType() != IElectricMinecart.ChargeHandler.Type.USER) {
                     baseSpeed = Math.min(0.2F, 0.03F + (numLocomotives - 1) * 0.075F);
                 }
-            }
+            }*/
             speed = Math.min(speed, baseSpeed);
         }
         return speed;

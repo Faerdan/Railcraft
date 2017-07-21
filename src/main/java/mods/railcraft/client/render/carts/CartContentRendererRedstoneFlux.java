@@ -65,7 +65,7 @@ public class CartContentRendererRedstoneFlux extends CartContentRenderer {
         float scale = 0.99F;
         GL11.glScalef(scale, scale, scale);
 
-        float bright = 0.5F + 0.5F * (float) ((double) cartRF.getRF() / (double) cartRF.getMaxRF());
+        float bright = 0.5F + 0.5F * (float) (cartRF.getEnergy() / cartRF.getMaxEnergy());
         GL11.glColor4f(bright, bright, bright, 1.0f);
 
         RenderFakeBlock.renderBlockForEntity(redBlock, cart.worldObj, x, y, z, false, true);

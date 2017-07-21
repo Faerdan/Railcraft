@@ -206,7 +206,7 @@ public interface IElectricMinecart {
          * </pre></blockquote>
          */
         public void tickOnTrack(int trackX, int trackY, int trackZ) {
-            if (type == Type.USER && charge < capacity && clock % DRAW_INTERVAL == 0) {
+            if ((type != Type.SOURCE) && charge < capacity && clock % DRAW_INTERVAL == 0) {
                 IElectricGrid track = RailTools.getTrackObjectAt(minecart.worldObj, trackX, trackY, trackZ, IElectricGrid.class);
                 if (track != null) {
                     double drawnFromTrack = track.getChargeHandler().removeCharge(capacity - charge);

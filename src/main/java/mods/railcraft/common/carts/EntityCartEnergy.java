@@ -90,13 +90,13 @@ abstract class EntityCartEnergy extends CartContainerBase implements IEnergyTran
         return false;
     }
 
-    @Override
+    /*@Override
     public final float getMaxCartSpeedOnRail() {
         int numLocomotives = Train.getTrain(this).getNumRunningLocomotives();
         if (numLocomotives == 0)
             return super.getMaxCartSpeedOnRail();
         return Math.min(1.2F, 0.18F - 0.05F * getTier() + (numLocomotives - 1) * 0.075F);
-    }
+    }*/
 
     @Override
     public int getSizeInventory() {

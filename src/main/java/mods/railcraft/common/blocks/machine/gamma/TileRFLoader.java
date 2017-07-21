@@ -64,12 +64,12 @@ public class TileRFLoader extends TileRFLoaderBase implements IGuiReturnHandler,
 
         EntityCartRF rfCart = (EntityCartRF) cart;
 
-        if (amountRF > 0 && rfCart.getRF() < rfCart.getMaxRF()) {
+        if (amountRF > 0 && rfCart.getEnergy() < rfCart.getMaxEnergy()) {
             int injection = TRANSFER_RATE;
             if (injection > amountRF) {
                 injection = amountRF;
             }
-            int used = rfCart.addRF(injection);
+            int used = 0; // rfCart.addRF(injection); // disabled rf
             if (used > 0) {
                 amountRF -= used;
                 transferred = true;
@@ -87,11 +87,11 @@ public class TileRFLoader extends TileRFLoaderBase implements IGuiReturnHandler,
         if (!(cart instanceof EntityCartRF))
             return true;
         EntityCartRF energyCart = (EntityCartRF) cart;
-        if (!waitTillFull && energyCart.getRF() > 0)
+        if (!waitTillFull && energyCart.getEnergy() > 0)
             return true;
-        else if (!waitIfEmpty && !waitTillFull && energyCart.getRF() == 0)
+        else if (!waitIfEmpty && !waitTillFull && energyCart.getEnergy() == 0)
             return true;
-        else if (energyCart.getRF() >= energyCart.getMaxRF())
+        else if (energyCart.getEnergy() >= energyCart.getMaxEnergy())
             return true;
         return false;
     }

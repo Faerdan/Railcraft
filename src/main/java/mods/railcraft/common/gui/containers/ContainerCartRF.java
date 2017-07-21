@@ -25,7 +25,7 @@ public class ContainerCartRF extends RailcraftContainer {
 
     public ContainerCartRF(EntityCartRF cart) {
         this.cart = cart;
-        energyIndicator = new RFEnergyIndicator(cart.getMaxRF());
+        energyIndicator = new RFEnergyIndicator((int)cart.getMaxEnergy());
         addWidget(new IndicatorWidget(energyIndicator, 57, 38, 176, 0, 62, 8, false));
     }
 
@@ -33,7 +33,7 @@ public class ContainerCartRF extends RailcraftContainer {
     public void addCraftingToCrafters(ICrafting crafter) {
         super.addCraftingToCrafters(crafter);
 
-        PacketBuilder.instance().sendGuiIntegerPacket((EntityPlayerMP) crafter, windowId, 0, cart.getRF());
+        PacketBuilder.instance().sendGuiIntegerPacket((EntityPlayerMP) crafter, windowId, 0, (int)cart.getEnergy());
     }
 
     @Override
@@ -43,11 +43,11 @@ public class ContainerCartRF extends RailcraftContainer {
         for (int var1 = 0; var1 < crafters.size(); ++var1) {
             ICrafting crafter = (ICrafting) crafters.get(var1);
 
-            if (lastEnergy != cart.getRF())
-                PacketBuilder.instance().sendGuiIntegerPacket((EntityPlayerMP) crafter, windowId, 0, cart.getRF());
+            if (lastEnergy != cart.getEnergy())
+                PacketBuilder.instance().sendGuiIntegerPacket((EntityPlayerMP) crafter, windowId, 0, (int)cart.getEnergy());
         }
 
-        this.lastEnergy = cart.getRF();
+        this.lastEnergy = (int)cart.getEnergy();
     }
 
     @Override
