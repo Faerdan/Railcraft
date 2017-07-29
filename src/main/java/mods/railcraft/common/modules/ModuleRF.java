@@ -29,8 +29,8 @@ public class ModuleRF extends RailcraftModule {
                     "LRL",
                     "RMR",
                     "LRL",
-                    'R', new ItemStack(Blocks.redstone_block),
-                    'L', RailcraftItem.ingot, ItemIngot.EnumIngot.LEAD,
+                    'R', Items.redstone,
+                    'L', RailcraftItem.ingot, ItemIngot.EnumIngot.STEEL,
                     'M', Items.minecart
             );
         }
@@ -46,7 +46,7 @@ public class ModuleRF extends RailcraftModule {
                     "RDR",
                     'D', detector,
                     'R', "blockRedstone",
-                    'L', "blockLead");
+                    'L', "blockSteel");
         }
 
         gamma = EnumMachineGamma.RF_UNLOADER;
@@ -60,7 +60,7 @@ public class ModuleRF extends RailcraftModule {
                     "RLR",
                     'D', detector,
                     'R', "blockRedstone",
-                    'L', "blockLead");
+                    'L', "blockSteel");
         }
     }
 }

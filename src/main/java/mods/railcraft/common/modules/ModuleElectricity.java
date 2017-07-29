@@ -91,7 +91,7 @@ public class ModuleElectricity extends RailcraftModule {
                     "LPL",
                     'C', "blockCopper",
                     'P', Items.paper,
-                    'L', "ingotLead"));
+                    'L', "ingotSteel"));
     }
 
 }
