@@ -32,10 +32,10 @@ import net.minecraft.world.World;
  */
 public class EntityLocomotiveElectric extends EntityLocomotive implements ISidedInventory, IElectricMinecart {
 
-    private static final int CHARGE_USE_PER_TICK = 20;
+    private static final int CHARGE_USE_PER_TICK = 5;
     private static final int FUEL_PER_REQUEST = 1;
     private static final int CHARGE_USE_PER_REQUEST = CHARGE_USE_PER_TICK * FUEL_PER_REQUEST;
-    public static final double MAX_CHARGE = 5000.0;
+    public static final double MAX_CHARGE = 10000.0;
     private static final int SLOT_TICKET = 0;
     private static final int[] SLOTS = InvTools.buildSlotArray(0, 1);
     private final IInventory invTicket = new InventoryMapper(this, SLOT_TICKET, 2, false);
