@@ -17,6 +17,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.IIcon;
+import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.oredict.ShapedOreRecipe;
 
 import java.util.List;
@@ -26,24 +27,30 @@ public class ItemPlate extends ItemRailcraft {
 
     public enum EnumPlate implements IItemMetaEnum {
 
-        IRON("ingotIron"), // 0
-        STEEL("ingotSteel"), // 1
-        TIN("ingotTin"), // 2
-        COPPER("ingotCopper"), // 3
-        LEAD("ingotLead"), // 4
-        DESH("ingotDesh"), // 5
-        TITANIUM("ingotTitanium");
+        IRON("ingotIron", "plateIron"), // 0
+        STEEL("ingotSteel", "plateSteel"), // 1
+        TIN("ingotTin", "plateTin"), // 2
+        COPPER("ingotCopper", "plateCopper"), // 3
+        LEAD("ingotLead", "plateLead"), // 4
+        DESH("ingotDesh", "plateDesh"), // 5
+        TITANIUM("ingotTitanium", "plateTitanium");
         public static final EnumPlate[] VALUES = values();
         private IIcon icon;
         private final Object alternate;
+        private final String oreName;
 
-        EnumPlate(Object alt) {
+        EnumPlate(Object alt, String oreName) {
             this.alternate = alt;
+            this.oreName = oreName;
         }
 
         @Override
         public Object getAlternate() {
             return alternate;
+        }
+
+        public String getOreName() {
+            return this.oreName;
         }
 
         @Override
@@ -63,6 +70,7 @@ public class ItemPlate extends ItemRailcraft {
         for (EnumPlate p : EnumPlate.VALUES) {
             ItemStack stack = new ItemStack(this, 1, p.ordinal());
             RailcraftRegistry.register(stack);
+            OreDictionary.registerOre(p.getOreName(), stack);
         }
     }
 
