@@ -55,8 +55,8 @@ import java.util.Map;
  * @author CovertJaguar <http://www.railcraft.info>
  */
 public abstract class TileTankBase extends TileMultiBlock implements ITankTile {
-    public final static int CAPACITY_PER_BLOCK_IRON = 16 * FluidHelper.BUCKET_VOLUME;
-    public final static int CAPACITY_PER_BLOCK_STEEL = 32 * FluidHelper.BUCKET_VOLUME;
+    public final static int CAPACITY_PER_BLOCK_IRON = 24 * FluidHelper.BUCKET_VOLUME;
+    public final static int CAPACITY_PER_BLOCK_STEEL = 48 * FluidHelper.BUCKET_VOLUME;
     protected final static int SLOT_INPUT = 0;
     protected final static int SLOT_OUTPUT = 1;
     protected final static int NETWORK_UPDATE_INTERVAL = 64;
