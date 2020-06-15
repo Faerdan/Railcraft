@@ -1,1 +1,2 @@
 robocopy .\build\dist C:\Users\faerd\AppData\Roaming\.minecraft\mods\1.7.10 Railcraft_1.7.10-9.12.3.0-unofficial.jar /MOV
+robocopy .\build\dist ..\RotaryCraft\libs Railcraft_1.7.10-9.12.3.0-unofficial-dev.jar

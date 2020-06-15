@@ -107,7 +107,7 @@ public class ModuleLocomotives extends RailcraftModule {
                     'L', Blocks.redstone_lamp,
                     'U', feederUnit,
                     'M', Items.minecart,
-                    'G', RailcraftItem.gear.getRecipeObject(EnumGear.STEEL),
+                    'G', "gearIron", //RailcraftItem.gear.getRecipeObject(EnumGear.STEEL),
                     'T', RailcraftItem.plate.getRecipeObject(EnumPlate.STEEL));
         }
     }

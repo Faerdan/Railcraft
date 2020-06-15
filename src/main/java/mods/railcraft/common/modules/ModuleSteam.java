@@ -46,7 +46,7 @@ public class ModuleSteam extends RailcraftModule {
                         'P', new ItemStack(Blocks.piston),
                         'N', "nuggetGold",
                         'C', "blockGlassColorless",
-                        'G', RailcraftItem.gear.getRecipeObject(EnumGear.GOLD_PLATE));
+                        'G', "gearIron"); // RailcraftItem.gear.getRecipeObject(EnumGear.GOLD_PLATE));
             }
         }
 
@@ -82,7 +82,7 @@ public class ModuleSteam extends RailcraftModule {
                         'P', new ItemStack(Blocks.piston),
                         'I', RailcraftItem.plate.getRecipeObject(EnumPlate.STEEL),
                         'C', "blockGlassColorless",
-                        'G', RailcraftItem.gear.getRecipeObject(EnumGear.STEEL));
+                        'G', "gearIron"); //RailcraftItem.gear.getRecipeObject(EnumGear.STEEL));
             }
         }
 

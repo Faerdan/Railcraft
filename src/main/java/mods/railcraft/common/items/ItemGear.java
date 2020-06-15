@@ -61,7 +61,7 @@ public class ItemGear extends ItemRailcraft {
             RailcraftRegistry.register(stack);
         }
 
-        OreDictionary.registerOre("gearIron", RailcraftItem.gear.getStack(1, EnumGear.IRON));
+        //OreDictionary.registerOre("gearIron", RailcraftItem.gear.getStack(1, EnumGear.IRON));
 
         ItemStack itemStack = new ItemStack(this, 1, EnumGear.BUSHING.ordinal());
         LootPlugin.addLootRailway(itemStack, 1, 8, "gear.bushing");
@@ -99,7 +99,7 @@ public class ItemGear extends ItemRailcraft {
                 "TT",
                 'T', "ingotTin");
 
-        CraftingPlugin.addShapedRecipe(gear.getStack(EnumGear.GOLD_PLATE),
+        /*CraftingPlugin.addShapedRecipe(gear.getStack(EnumGear.GOLD_PLATE),
                 " G ",
                 "GBG",
                 " G ",
@@ -118,7 +118,7 @@ public class ItemGear extends ItemRailcraft {
                 "IBI",
                 " I ",
                 'I', "ingotSteel",
-                'B', bushing);
+                'B', bushing);*/
     }
 
     @Override

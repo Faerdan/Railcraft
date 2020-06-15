@@ -312,7 +312,7 @@ public class ModuleFactory extends RailcraftModule {
                     "GPG",
                     'A', new ItemStack(Blocks.anvil),
                     'P', new ItemStack(Blocks.piston),
-                    'G', RailcraftItem.gear.getRecipeObject(ItemGear.EnumGear.STEEL));
+                    'G', "gearIron");//RailcraftItem.gear.getRecipeObject(ItemGear.EnumGear.STEEL));
 
         if (BlockCube.getBlock() != null) {
             EnumCube type = EnumCube.STEEL_BLOCK;
