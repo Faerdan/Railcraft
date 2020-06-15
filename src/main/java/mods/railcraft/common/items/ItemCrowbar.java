@@ -195,7 +195,7 @@ public class ItemCrowbar extends ItemTool implements IToolCrowbar, IBoxable, ITo
 
     @Override
     public void onWhack(EntityPlayer player, ItemStack crowbar, int x, int y, int z) {
-        crowbar.damageItem(1, player);
+        //crowbar.damageItem(1, player);
         player.swingItem();
     }
 
@@ -206,7 +206,7 @@ public class ItemCrowbar extends ItemTool implements IToolCrowbar, IBoxable, ITo
 
     @Override
     public void onLink(EntityPlayer player, ItemStack crowbar, EntityMinecart cart) {
-        crowbar.damageItem(1, player);
+        //crowbar.damageItem(1, player);
         player.swingItem();
     }
 
